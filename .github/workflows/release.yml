@@ -33,6 +33,10 @@ jobs:
         id: get_version
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
 
+      # Debug Step: Check the extracted version
+      - name: Debug Show Extracted Version
+        run: echo "Extracted VERSION ${{ env.VERSION }}"
+
       # Step 5: Publish the project
       - name: Build Project
         run: dotnet publish -c Release -r win-x64 --self-contained false /p:PublishSingleFile=true
@@ -54,7 +58,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: SampleAppInstaller.exe # Ensure this matches the actual file name and path
-          name: "Release v${{ env.VERSION }}" # Optional, defaults to the tag name
-          tag_name: "v${{ env.VERSION }}" # Use the extracted version tag
+          name: "Release v${{ env.VERSION }}" # Properly interpolate the version in the name
+          tag_name: "v${{ env.VERSION }}" # Properly interpolate the version in the tag name
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
