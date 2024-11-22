@@ -1,5 +1,5 @@
 Name "Sample App"
-OutFile "SampleAppInstaller.exe"
+OutFile "EpicSwitcherInstallerCool.exe"
 InstallDir "$LOCALAPPDATA\SampleApp"
 RequestExecutionLevel user
 
