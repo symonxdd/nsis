@@ -32,10 +32,12 @@ jobs:
       - name: Extract Version from Tag
         id: get_version
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+        env:
+          VERSION: Mona
 
       # Debug Step: Check the extracted version
       - name: Debug Show Extracted Version
-        run: echo "Extracted VERSION ${{ env.VERSION }}"
+        run: echo "Extracted VERSION ${{ env.VERSION }} AND GITHUB_REF striped ${{GITHUB_REF#refs/tags/v}} AND GITHUB_REF ${{GITHUB_REF#refs/tags/v}}"
 
       # Step 5: Publish the project
       - name: Build Project
