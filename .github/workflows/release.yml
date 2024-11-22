@@ -25,12 +25,11 @@ jobs:
 
       - name: Extract Version from Tag
         id: get_version
-        run: |
-          echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
 
-      - name: Publish Project
+      - name: Build Project
         run: |
-          dotnet publish -c Release -r win-x64 --self-contained false /p:PublishSingleFile=true
+          dotnet publish -c Release -r win-x64 --self-contained -p:PublishSingleFile=true
         env:
           VERSION: ${{ env.VERSION }}
 
@@ -43,18 +42,14 @@ jobs:
       - name: Create GitHub Release (Automatically)
         id: create_release
         run: |
-          release_name="Release v${{ env.VERSION }}"
-          release_body="Automated release for version ${GITHUB_REF#refs/tags/v}."
-
-          response=$(curl -s -X POST \
-            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github.v3+json" \
-            -d "{\"tag_name\":\"v${{ env.VERSION }}\",\"name\":\"$release_name\",\"body\":\"$release_body\",\"draft\":false,\"prerelease\":false}" \
-            "https://api.github.com/repos/${{ github.repository }}/releases")
-
-          # Extract the upload_url from the response
-          upload_url=$(echo "$response" | jq -r .upload_url)
-          echo "UPLOAD_URL=$upload_url" >> $GITHUB_ENV  # Store the upload_url in the environment variable
+          $release_name = "Release v${{ env.VERSION }}"
+          $release_body = "Automated release for version ${GITHUB_REF#refs/tags/v}."
+          $response = curl -s -X POST `
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" `
+            -H "Accept: application/vnd.github.v3+json" `
+            -d "{\"tag_name\":\"v${{ env.VERSION }}\",\"name\":\"$release_name\",\"body\":\"$release_body\",\"draft\":false,\"prerelease\":false}" `
+            "https://api.github.com/repos/${{ github.repository }}/releases"
+          echo "::set-output name=upload_url::$(echo $response | jq -r .upload_url)"
 
       - name: Debug Upload URL
         run: |
@@ -63,7 +58,7 @@ jobs:
       - name: Upload Installer to Release
         uses: actions/upload-release-asset@v1
         with:
-          upload_url: ${{ env.UPLOAD_URL }} # Use the environment variable
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: SampleAppInstaller.exe
           asset_name: "SampleAppInstaller_v${{ env.VERSION }}.exe"
           asset_content_type: application/octet-stream
