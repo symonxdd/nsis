@@ -16,4 +16,4 @@ jobs:
       GLOBAL_VARIABLE: "value for all steps"
     steps:
       - name: Print global variable
-        run: echo "Global Variable ${env.GLOBAL_VARIABLE} ${{env.GLOBAL_VARIABLE}}"
+        run: echo "Global Variable ${{env.GLOBAL_VARIABLE}}"
