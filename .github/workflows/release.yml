@@ -25,11 +25,12 @@ jobs:
 
       - name: Extract Version from Tag
         id: get_version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+        run: |
+          echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV  # Extract version from the tag
 
       - name: Build Project
         run: |
-          dotnet publish -c Release -r win-x64 --self-contained -p:PublishSingleFile=true
+          dotnet build --configuration Release --version ${{ env.VERSION }}  # Pass version to .NET build
         env:
           VERSION: ${{ env.VERSION }}
 
@@ -49,12 +50,15 @@ jobs:
             -H "Accept: application/vnd.github.v3+json" `
             -d "{\"tag_name\":\"v${{ env.VERSION }}\",\"name\":\"$release_name\",\"body\":\"$release_body\",\"draft\":false,\"prerelease\":false}" `
             "https://api.github.com/repos/${{ github.repository }}/releases"
-          echo "::set-output name=upload_url::$(echo $response | jq -r .upload_url)"
+
+          # Get upload_url from the response and save it as an environment variable
+          $upload_url = ($response | jq -r .upload_url)
+          echo "UPLOAD_URL=$upload_url" >> $GITHUB_ENV
 
       - name: Upload Installer to Release
         uses: actions/upload-release-asset@v1
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          upload_url: ${{ env.UPLOAD_URL }} # Use the environment variable
           asset_path: SampleAppInstaller.exe
           asset_name: "SampleAppInstaller_v${{ env.VERSION }}.exe"
           asset_content_type: application/octet-stream
