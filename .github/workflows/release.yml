@@ -12,11 +12,8 @@ jobs:
   build:
     runs-on: windows-latest
 
+    env: # Define global variables here
+      GLOBAL_VARIABLE: "value for all steps"
     steps:
-      - name: Extract Tag Version
-        run: |
-          tag_name=${GITHUB_REF#refs/tags/}
-          version=${tag_name##v}
-          echo "::set-env name=TAG_VERSION::$version"
-      - name: Use the Tag Version
-        run: echo "The current tag version is $TAG_VERSION"
+      - name: Print global variable
+        run: echo "Global Variable $GLOBAL_VARIABLE"
