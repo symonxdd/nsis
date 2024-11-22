@@ -28,9 +28,9 @@ jobs:
         run: |
           echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV  # Extract version from the tag
 
-      - name: Build Project
+      - name: Publish Project
         run: |
-          dotnet build --configuration Release --version ${{ env.VERSION }}  # Pass version to .NET build
+          dotnet publish -c Release -r win-x64 --self-contained false /p:PublishSingleFile=true
         env:
           VERSION: ${{ env.VERSION }}
 
