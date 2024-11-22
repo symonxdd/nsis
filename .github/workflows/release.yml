@@ -53,12 +53,12 @@ jobs:
 
           # Extract the upload_url from the response
           $upload_url = ($response | jq -r .upload_url)
-          echo "UPLOAD_URL=$upload_url" >> $GITHUB_ENV
+          echo "UPLOAD_URL=$upload_url" >> $GITHUB_ENV  # Store the upload_url to an environment file
 
       - name: Upload Installer to Release
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ env.UPLOAD_URL }} # Use the environment variable containing the upload_url
-          asset_path: SampleAppInstaller.exe
+          asset_path: SampleAppInstaller.exe # Adjust this path to your actual installer file location
           asset_name: "SampleAppInstaller_v${{ env.VERSION }}.exe"
           asset_content_type: application/octet-stream
