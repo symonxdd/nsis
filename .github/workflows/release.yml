@@ -5,6 +5,9 @@ on:
     tags:
       - "v*" # Trigger workflow on tags, e.g., v1.0.0
 
+permissions:
+  contents: write # Ensure GITHUB_TOKEN has write permissions
+
 jobs:
   build:
     runs-on: windows-latest
@@ -42,12 +45,15 @@ jobs:
         env:
           VERSION: ${{ env.VERSION }}
 
+      # Debug: List files in the directory
+      - name: Debug List Files
+        run: dir
+
       # Step 7: Create a GitHub Release and upload the installer
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            SampleAppInstaller.exe  # Specify the file(s) to upload
+          files: SampleAppInstaller.exe # Ensure this matches the actual file name and path
           name: "Release v${{ env.VERSION }}" # Optional, defaults to the tag name
           tag_name: "v${{ env.VERSION }}" # Use the extracted version tag
         env:
