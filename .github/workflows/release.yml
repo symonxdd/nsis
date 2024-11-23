@@ -39,7 +39,7 @@ jobs:
       - name: Update AssemblyVersion and FileVersion in .csproj
         shell: powershell
         run: |
-          $csprojPath = "YourProject.csproj"  # Path to your .csproj file
+          $csprojPath = "SampleApp.csproj"
           $newVersion = $Env:VERSION  # The version extracted from GitHub tag
 
           # Update AssemblyVersion and FileVersion in .csproj
