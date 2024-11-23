@@ -11,8 +11,6 @@ permissions:
 jobs:
   build:
     runs-on: windows-latest
-    env: # Define global variables here
-      VERSION: ""
 
     steps:
       - name: Extract Version from Tag
