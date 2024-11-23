@@ -74,5 +74,6 @@ jobs:
           files: SampleAppInstaller.exe
           name: "Release v${{ env.VERSION }}"
           tag_name: "v${{ env.VERSION }}"
+          body: "${{ github.event.head_commit.message }}" # Use the tag's commit message for release notes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
