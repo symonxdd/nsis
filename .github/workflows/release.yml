@@ -11,9 +11,16 @@ permissions:
 jobs:
   build:
     runs-on: windows-latest
-
     env: # Define global variables here
-      GLOBAL_VARIABLE: "value for all steps"
+      VERSION: ""
+
     steps:
-      - name: Print global variable
-        run: echo "Global Variable ${{env.GLOBAL_VARIABLE}}"
+      - name: Extract Version from Tag
+        id: get_version
+        run: |
+          echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV # Extracts the version part (e.g., 'v1.0.0')
+
+      - name: Print Global Variable
+        run: echo "Global Variable is ${{ env.VERSION }}" # Accesses the updated VERSION
+        env:
+          VERSION: ${{ env.VERSION }}
