@@ -11,8 +11,8 @@ permissions:
 jobs:
   build:
     runs-on: windows-latest
-
     steps:
+      # Step 0: Extract the version from the tag
       - name: Extract Version from Tag
         id: get_version
         shell: powershell
@@ -20,7 +20,43 @@ jobs:
           $version = "${{ github.ref }}" -replace "refs/tags/v", ""
           echo "VERSION=$version" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8
 
-      - name: Debug Print Extracted Version
+      # Step 1: Check out the code
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Step 2: Set up .NET
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: "8.0.x"
+
+      # Step 3: Install NSIS
+      - name: Install NSIS
         shell: powershell
-        run: |
-          Write-Output "Extracted Version $Env:VERSION"
+        run: choco install nsis -y
+
+      # Step 5: Publish the project
+      - name: Build Project
+        run: dotnet publish -c Release -r win-x64 --self-contained false /p:PublishSingleFile=true
+        env:
+          VERSION: ${{ env.VERSION }}
+
+      # Step 6: Generate NSIS installer
+      - name: Generate Installer
+        run: makensis installer_script.nsi
+        env:
+          VERSION: ${{ env.VERSION }}
+
+      # Debug: List files in the directory
+      - name: Debug List Files
+        run: dir
+
+      # Step 7: Create a GitHub Release and upload the installer
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: SampleAppInstaller.exe # Ensure this matches the actual file name and path
+          name: "Release v${{ env.VERSION }}" # Properly interpolate the version in the name
+          tag_name: "v${{ env.VERSION }}" # Properly interpolate the version in the tag name
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
