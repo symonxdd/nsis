@@ -35,6 +35,24 @@ jobs:
         shell: powershell
         run: choco install nsis -y
 
+      # Step 4: Update version in .csproj
+      - name: Update AssemblyVersion and FileVersion in .csproj
+        shell: powershell
+        run: |
+          $csprojPath = "YourProject.csproj"  # Path to your .csproj file
+          $newVersion = $Env:VERSION  # The version extracted from GitHub tag
+
+          # Update AssemblyVersion and FileVersion in .csproj
+          Write-Output "Updating AssemblyVersion and FileVersion to $newVersion"
+
+          # Update AssemblyVersion (set it as <version>.0 for compatibility reasons)
+          (Get-Content $csprojPath) -replace '<AssemblyVersion>.*</AssemblyVersion>', "<AssemblyVersion>$newVersion.0</AssemblyVersion>" |
+            Set-Content $csprojPath
+
+          # Update FileVersion
+          (Get-Content $csprojPath) -replace '<FileVersion>.*</FileVersion>', "<FileVersion>$newVersion.0</FileVersion>" |
+            Set-Content $csprojPath
+
       # Step 5: Publish the project
       - name: Build Project
         run: dotnet publish -c Release -r win-x64 --self-contained false /p:PublishSingleFile=true
@@ -44,8 +62,6 @@ jobs:
       # Step 6: Generate NSIS installer
       - name: Generate Installer
         run: makensis installer_script.nsi
-        env:
-          VERSION: ${{ env.VERSION }}
 
       # Debug: List files in the directory
       - name: Debug List Files
@@ -55,8 +71,8 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: SampleAppInstaller.exe # Ensure this matches the actual file name and path
-          name: "Release v${{ env.VERSION }}" # Properly interpolate the version in the name
-          tag_name: "v${{ env.VERSION }}" # Properly interpolate the version in the tag name
+          files: SampleAppInstaller.exe
+          name: "Release v${{ env.VERSION }}"
+          tag_name: "v${{ env.VERSION }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
