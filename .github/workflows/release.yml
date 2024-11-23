@@ -17,10 +17,12 @@ jobs:
     steps:
       - name: Extract Version from Tag
         id: get_version
+        shell: powershell
         run: |
-          echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV # Extracts the version part (e.g., 'v1.0.0')
+          $version = "${{ github.ref }}" -replace "refs/tags/v", ""
+          echo "VERSION=$version" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8
 
-      - name: Print Global Variable
-        run: echo "Global Variable is ${{ env.VERSION }}" # Accesses the updated VERSION
-        env:
-          VERSION: ${{ env.VERSION }}
+      - name: Debug Print Extracted Version
+        shell: powershell
+        run: |
+          Write-Output "Extracted Version $Env:VERSION"
