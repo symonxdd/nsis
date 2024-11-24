@@ -44,29 +44,25 @@ jobs:
 
       # Step 4: Extract release notes from CHANGELOG.md
       - name: Extract Release Notes
-        id: get_notes
+        id: extract_notes
         shell: powershell
         run: |
-          $version = $Env:VERSION
           $changelogPath = "CHANGELOG.md"
-          $notes = Get-Content $changelogPath | ForEach-Object {
-              if ($_ -match "^## \[$version\]") {
-                  $capture = $true
-                  continue
-              }
-              if ($capture -and ($_ -match "^## \[")) {
-                  $capture = $false
-              }
-              if ($capture) { $_ }
-          } | Out-String
+          $version = "v$Env:VERSION"
+          $content = Get-Content $changelogPath -Raw
 
-          if (-not $notes) {
-              Write-Output "No release notes found for version $version. Using an empty body."
-              $notes = ""
+          # Match the section for the specified version
+          $pattern = "(?s)(## \[$version\].*?)(\n## \[|\Z)"
+          $matches = [regex]::Matches($content, $pattern)
+
+          if ($matches.Count -eq 0) {
+              Write-Output "No release notes found for version $version."
+              echo "RELEASE_NOTES=" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8
+          } else {
+              $releaseNotes = $matches[0].Groups[1].Value.Trim()
+              Write-Output "Extracted Notes: `n$releaseNotes"
+              echo "RELEASE_NOTES=$releaseNotes" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8
           }
-
-          $notes = $notes.Trim()
-          echo "RELEASE_NOTES=$notes" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8
 
       # Debug: Print extracted release notes
       - name: Debug Release Notes
