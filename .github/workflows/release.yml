@@ -22,6 +22,30 @@ jobs:
           $version = "${{ github.ref }}" -replace "refs/tags/v", ""
           echo "VERSION=$version" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8
 
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Install NSIS
+        shell: powershell
+        run: choco install nsis -y
+
+      - name: Build project
+        run: dotnet publish -c Release -r win-x64 --self-contained false /p:PublishSingleFile=true
+        env:
+          VERSION: ${{ env.VERSION }}
+
+      - name: Generate installer
+        run: makensis installer_script.nsi
+
+      - name: Rename installer with tag
+        shell: powershell
+        run: |
+          $tag = $env:GITHUB_REF -replace '^refs/tags/', ''
+          $tag = $tag -replace '^v', ''  # Remove leading 'v' if necessary
+          Rename-Item -Path "EpicSwitcherSetup.exe" -NewName "EpicSwitcherSetup-$tag.exe"
+
       - name: Construct installer download link
         id: construct_link
         shell: powershell
@@ -42,10 +66,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Update README.md
+        shell: powershell
         run: |
-          DOWNLOAD_URL=${{ env.DOWNLOAD_URL }}
-          sed -i "s|href=\"#\"|href=\"$DOWNLOAD_URL\"|" README.md
-          sed -i "s|\\[here\\]()|[here]($DOWNLOAD_URL)|" README.md
+          $readme = Get-Content README.md
+          $updated = $readme -replace 'href="#"', "href='${{ env.DOWNLOAD_URL }}'" `
+                              -replace '\[here\]\(\)', "[here](${{ env.DOWNLOAD_URL }})"
+          $updated | Set-Content README.md
 
       - name: Commit & Push changes
         uses: actions-js/push@master
