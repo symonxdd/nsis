@@ -1,6 +1,6 @@
 # Changelog
 
-## [2.0.16] - 2024-11-24
+## [2.0.17] - 2024-11-24
 ### Added
 - New feature 1
 - New feature 2
