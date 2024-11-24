@@ -12,39 +12,48 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-      - name: Checkout Code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Extract version from tag
-        id: get_version
+      - name: Extract release notes from CHANGELOG.md
+        id: extract_notes
         shell: powershell
         run: |
+          $changelogPath = "CHANGELOG.md"
           $version = "${{ github.ref }}" -replace "refs/tags/v", ""
-          echo "VERSION=$version" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8
 
-      - name: Install NSIS
-        shell: powershell
-        run: choco install nsis -y
+          Write-Output "Looking for release notes for version: $version"
 
-      - name: Generate NSIS Installer
-        run: makensis installer_script.nsi
+          # Check if CHANGELOG.md exists
+          if (-Not (Test-Path $changelogPath)) {
+              Write-Error "CHANGELOG.md file not found at $changelogPath"
+              exit 1
+          }
 
-      - name: Rename Installer with Tag
-        shell: powershell
-        run: |
-          $tag = $env:GITHUB_REF -replace '^refs/tags/', ''
-          $tag = $tag -replace '^v', ''  # Remove leading 'v' if necessary
-          Rename-Item -Path "SampleAppInstaller.exe" -NewName "SampleAppInstaller-$tag.exe"
+          # Read the content of CHANGELOG.md using UTF-8 without BOM
+          $content = Get-Content $changelogPath -Raw -Encoding utf8
 
-      - name: List files (debug purposes)
-        run: dir
+          # Regex pattern to extract notes for the current version
+          $pattern = "(?s)(## \[$version\].*?)(?=## \[|\Z)"
+          $matches = [regex]::Matches($content, $pattern)
 
-      - name: Create a GitHub Release and upload the installer
-        uses: softprops/action-gh-release@v2
-        with:
-          files: SampleAppInstaller-${{ env.VERSION }}.exe
-          name: "SampleApp ${{ env.VERSION }}"
-          tag_name: "v${{ env.VERSION }}"
-          body: ${{ env.RELEASE_NOTES }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          if ($matches.Count -eq 0) {
+              Write-Output "No release notes found for version $version."
+              echo "RELEASE_NOTES=" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8
+          } else {
+              # Extract the release notes
+              $releaseNotes = $matches[0].Groups[1].Value.Trim()
+
+              # Remove the first line containing the version and date (e.g. "[2.0.18] - 2024-11-24")
+              $lines = $releaseNotes -split "`n"  # Split the string by new lines
+              $lines = $lines[1..($lines.Length - 1)]  # Remove the first line
+              $releaseNotes = $lines -join "`n"  # Join the remaining lines back
+
+              # Debug output to confirm extraction
+              Write-Output "Extracted Release Notes:"
+              Write-Output $releaseNotes
+
+              # Ensure UTF-8 encoding without BOM when setting the environment variable
+              [System.Text.Encoding]::UTF8.GetBytes("RELEASE_NOTES<<EOF`n$releaseNotes`nEOF") |
+                  Set-Content -Path $Env:GITHUB_ENV -NoNewline -Encoding Byte
+          }
