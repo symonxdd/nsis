@@ -22,30 +22,6 @@ jobs:
           $version = "${{ github.ref }}" -replace "refs/tags/v", ""
           echo "VERSION=$version" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8
 
-      - name: Set up .NET
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: "8.0.x"
-
-      - name: Install NSIS
-        shell: powershell
-        run: choco install nsis -y
-
-      - name: Build project
-        run: dotnet publish -c Release -r win-x64 --self-contained false /p:PublishSingleFile=true
-        env:
-          VERSION: ${{ env.VERSION }}
-
-      - name: Generate installer
-        run: makensis installer_script.nsi
-
-      - name: Rename installer with tag
-        shell: powershell
-        run: |
-          $tag = $env:GITHUB_REF -replace '^refs/tags/', ''
-          $tag = $tag -replace '^v', ''  # Remove leading 'v' if necessary
-          Rename-Item -Path "SampleAppInstaller.exe" -NewName "SampleAppInstaller-$tag.exe"
-
       - name: Construct installer download link
         id: construct_link
         shell: powershell
@@ -55,23 +31,29 @@ jobs:
           $url = "https://github.com/$repo/releases/latest/download/SampleAppInstaller-$version.exe"
           echo "DOWNLOAD_URL=$url" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8
 
-      - name: Create a GitHub Release and upload the installer
-        uses: softprops/action-gh-release@v2
-        with:
-          files: SampleAppInstaller-${{ env.VERSION }}.exe
-          name: "SampleApp ${{ env.VERSION }}"
-          tag_name: "v${{ env.VERSION }}"
-          body: ${{ env.RELEASE_NOTES }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Update README.md
         shell: powershell
         run: |
-          $readme = Get-Content README.md
-          $updated = $readme -replace 'href="#"', "href='${{ env.DOWNLOAD_URL }}'" `
-                              -replace '\[here\]\(\)', "[here](${{ env.DOWNLOAD_URL }})"
-          $updated | Set-Content README.md
+          # Define the path to the README.md file
+          $readmePath = "README.md"
+
+          # Read the content of README.md
+          $readme = Get-Content $readmePath
+
+          # Define the download URL (you can dynamically fetch this or hardcode it)
+          $downloadUrl = "${{ env.DOWNLOAD_URL }}"
+
+          # Replace href attributes that contain "#link_to_be_inserted" or ".exe"
+          $updated = $readme -replace "href='[^']*(#link_to_be_inserted|\.exe)[^']*'", "href='$downloadUrl'"
+
+          # Replace markdown links containing `#link_to_be_inserted` or `.exe` in the URL part and where the display text is 'here'
+          $updated = $updated -replace '\[here\]\([^\)]*(#link_to_be_inserted|\.exe)[^\)]*\)', "[here]($downloadUrl)"
+
+          # Save the updated content back to README.md
+          $updated | Set-Content $readmePath
+
+          # Output to confirm the script worked
+          Write-Host "README.md has been updated with the download link."
 
       - name: Commit & Push changes
         uses: actions-js/push@master
