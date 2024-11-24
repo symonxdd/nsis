@@ -43,7 +43,7 @@ jobs:
           # Read the content of CHANGELOG.md
           $content = Get-Content $changelogPath -Raw
 
-          # Regex pattern to extract notes for the current version
+          # Regex pattern to extract notes for the current version (excluding the first line)
           $pattern = "(?s)(## \[$version\].*?)(?=## \[|\Z)"
           $matches = [regex]::Matches($content, $pattern)
 
@@ -51,7 +51,12 @@ jobs:
               Write-Output "No release notes found for version $version."
               echo "RELEASE_NOTES=" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8
           } else {
+              # Extract the release notes and remove the first line (which includes version and date)
               $releaseNotes = $matches[0].Groups[1].Value.Trim()
+
+              # Remove the first line (version and date line)
+              $releaseNotes = $releaseNotes -replace '^\[.*?\] - .*?$', ''
+
               Write-Output "Extracted Release Notes: $releaseNotes" # Debug output
               
               # Use a delimiter to set a multi-line environment variable
