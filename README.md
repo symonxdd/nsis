@@ -1,5 +1,5 @@
 <div align="center">
-  <a href='https://github.com/symonxdd/nsis/releases/latest/download/SampleAppInstaller-4.69.69.exe' target="_blank">
+  <a href='https://github.com/symonxdd/nsis/releases/latest/download/SampleAppInstaller-1.0.69.exe' target="_blank">
     <img src="./Assets/capy_icon.png" alt="Project Icon" width="100" style="pointer-events: none;">
   </a>
   <h1>Epic Switcher</h1>
@@ -14,7 +14,7 @@ Epic Switcher is designed to facilitate switching between accounts in the Epic G
 
 ## Downloads
 
-Just choose the latest `.exe` file from the Releases section, or click [here](https://github.com/symonxdd/nsis/releases/latest/download/SampleAppInstaller-4.69.69.exe)
+Just choose the latest `.exe` file from the Releases section, or click [here](https://github.com/symonxdd/nsis/releases/latest/download/SampleAppInstaller-1.0.69.exe)
 
 <br/>
 
