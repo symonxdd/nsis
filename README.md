@@ -1,6 +1,6 @@
 <div align="center">
-  <a href="[#](https://github.com/symonxdd/nsis/releases/latest/download/SampleAppInstaller-4.0.0.exe)" target="_blank">
-    <img src="./Assets/capy_icon.png" alt="Project Icon" width="100">
+  <a href="https://github.com/symonxdd/nsis/releases/latest/download/SampleAppInstaller-4.0.0.exe" target="_blank">
+    <img src="./Assets/capy_icon.png" alt="Project Icon" width="100" style="pointer-events: none;">
   </a>
   <h1>Epic Switcher</h1>
 </div>
