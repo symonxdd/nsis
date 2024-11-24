@@ -53,12 +53,11 @@ jobs:
               echo "EOF" | Out-File -Append -FilePath $Env:GITHUB_ENV
           }
 
-      # Step 3: Build Project (Optional: Add your build process here)
-      # For example, you can build your .NET application here or skip it if not needed.
+      # Step 3: Build Project
       - name: Build Project
-        run: |
-          echo "Building project..."  # Replace this with your actual build command if needed.
-          # dotnet build -c Release  # Example build command
+        run: dotnet publish -c Release -r win-x64 --self-contained false /p:PublishSingleFile=true
+        env:
+          VERSION: ${{ env.VERSION }}
 
       # Step 4: Create GitHub Release and upload installer
       - name: Create GitHub Release
