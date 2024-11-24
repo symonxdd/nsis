@@ -48,10 +48,14 @@ jobs:
         shell: powershell
         run: |
           $changelogPath = "CHANGELOG.md"
-          $version = "v$Env:VERSION"
-          $content = Get-Content $changelogPath -Raw
+          $version = $Env:VERSION
 
-          # Match the section for the specified version
+          if (-Not (Test-Path $changelogPath)) {
+              Write-Error "CHANGELOG.md file not found at $changelogPath"
+              exit 1
+          }
+
+          $content = Get-Content $changelogPath -Raw
           $pattern = "(?s)(## \[$version\].*?)(\n## \[|\Z)"
           $matches = [regex]::Matches($content, $pattern)
 
@@ -60,7 +64,6 @@ jobs:
               echo "RELEASE_NOTES=" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8
           } else {
               $releaseNotes = $matches[0].Groups[1].Value.Trim()
-              Write-Output "Extracted Notes: `n$releaseNotes"
               echo "RELEASE_NOTES=$releaseNotes" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8
           }
 
