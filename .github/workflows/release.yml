@@ -12,48 +12,45 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Extract release notes from CHANGELOG.md
-        id: extract_notes
+      - name: Extract version from tag
+        id: get_version
         shell: powershell
         run: |
-          $changelogPath = "CHANGELOG.md"
           $version = "${{ github.ref }}" -replace "refs/tags/v", ""
+          echo "VERSION=$version" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8
 
-          Write-Output "Looking for release notes for version: $version"
+      - name: Construct installer download link
+        id: construct_link
+        shell: powershell
+        run: |
+          $repo = "${{ github.repository }}"
+          $version = "${{ env.VERSION }}"
+          $url = "https://github.com/$repo/releases/latest/download/SampleAppInstaller-$version.exe"
+          echo "DOWNLOAD_URL=$url" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8
 
-          # Check if CHANGELOG.md exists
-          if (-Not (Test-Path $changelogPath)) {
-              Write-Error "CHANGELOG.md file not found at $changelogPath"
-              exit 1
-          }
+      - name: Create a GitHub Release and upload the installer
+        uses: softprops/action-gh-release@v2
+        with:
+          files: SampleAppInstaller-${{ env.VERSION }}.exe
+          name: "SampleApp ${{ env.VERSION }}"
+          tag_name: "v${{ env.VERSION }}"
+          body: ${{ env.RELEASE_NOTES }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-          # Read the content of CHANGELOG.md using UTF-8 without BOM
-          $content = Get-Content $changelogPath -Raw -Encoding utf8
+      - name: Update README.md
+        run: |
+          DOWNLOAD_URL=${{ env.DOWNLOAD_URL }}
+          sed -i "s|href=\"#\"|href=\"$DOWNLOAD_URL\"|" README.md
+          sed -i "s|\\[here\\]()|[here]($DOWNLOAD_URL)|" README.md
 
-          # Regex pattern to extract notes for the current version
-          $pattern = "(?s)(## \[$version\].*?)(?=## \[|\Z)"
-          $matches = [regex]::Matches($content, $pattern)
-
-          if ($matches.Count -eq 0) {
-              Write-Output "No release notes found for version $version."
-              echo "RELEASE_NOTES=" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8
-          } else {
-              # Extract the release notes
-              $releaseNotes = $matches[0].Groups[1].Value.Trim()
-
-              # Remove the first line containing the version and date (e.g. "[2.0.18] - 2024-11-24")
-              $lines = $releaseNotes -split "`n"  # Split the string by new lines
-              $lines = $lines[1..($lines.Length - 1)]  # Remove the first line
-              $releaseNotes = $lines -join "`n"  # Join the remaining lines back
-
-              # Debug output to confirm extraction
-              Write-Output "Extracted Release Notes:"
-              Write-Output $releaseNotes
-
-              # Ensure UTF-8 encoding without BOM when setting the environment variable
-              [System.Text.Encoding]::UTF8.GetBytes("RELEASE_NOTES<<EOF`n$releaseNotes`nEOF") |
-                  Set-Content -Path $Env:GITHUB_ENV -NoNewline -Encoding Byte
-          }
+      - name: Commit & Push changes
+        uses: actions-js/push@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          author_name: "github-actions[bot]"
+          author_email: "github-actions[bot]@users.noreply.github.com"
+          message: "Update README.md with latest release URL"
