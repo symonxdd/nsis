@@ -44,7 +44,7 @@ jobs:
         run: |
           $tag = $env:GITHUB_REF -replace '^refs/tags/', ''
           $tag = $tag -replace '^v', ''  # Remove leading 'v' if necessary
-          Rename-Item -Path "EpicSwitcherSetup.exe" -NewName "EpicSwitcherSetup-$tag.exe"
+          Rename-Item -Path "SampleAppInstaller.exe" -NewName "SampleAppInstaller-$tag.exe"
 
       - name: Construct installer download link
         id: construct_link
