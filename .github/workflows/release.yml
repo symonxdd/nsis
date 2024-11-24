@@ -64,7 +64,9 @@ jobs:
               echo "RELEASE_NOTES=" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8
           } else {
               $releaseNotes = $matches[0].Groups[1].Value.Trim()
-              echo "RELEASE_NOTES=$releaseNotes" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8
+              # Base64 encode the release notes
+              $encodedNotes = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($releaseNotes))
+              echo "RELEASE_NOTES=$encodedNotes" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8
           }
 
       # Debug: Print extracted release notes
@@ -111,6 +113,6 @@ jobs:
           files: SampleAppInstaller.exe
           name: "Release v${{ env.VERSION }}"
           tag_name: "v${{ env.VERSION }}"
-          body: "${{ env.RELEASE_NOTES }}" # Use extracted release notes for the body
+          body: ${{ steps.extract_notes.outputs.RELEASE_NOTES | decode_base64 }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
