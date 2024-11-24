@@ -1,6 +1,6 @@
 # Changelog
 
-## [3.0.70] - 2024-11-24
+## [3.0.77] - 2024-11-24
 **Changed**
 - Feature 1
 - Feature 2

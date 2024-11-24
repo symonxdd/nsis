@@ -31,3 +31,13 @@ jobs:
 
       - name: List files (debug purposes)
         run: dir
+
+      - name: Create a GitHub Release and upload the installer
+        uses: softprops/action-gh-release@v2
+        with:
+          files: SampleAppInstaller-${{ env.VERSION }}.exe
+          name: "SampleApp ${{ env.VERSION }}"
+          tag_name: "v${{ env.VERSION }}"
+          body: ${{ env.RELEASE_NOTES }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
