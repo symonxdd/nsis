@@ -15,6 +15,13 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Extract version from tag
+        id: get_version
+        shell: powershell
+        run: |
+          $version = "${{ github.ref }}" -replace "refs/tags/v", ""
+          echo "VERSION=$version" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8
+
       - name: Install NSIS
         shell: powershell
         run: choco install nsis -y
