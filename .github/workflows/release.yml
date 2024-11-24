@@ -25,7 +25,7 @@ jobs:
           $readme = Get-Content $readmePath
 
           # Define the download URL (you can dynamically fetch this or hardcode it)
-          $downloadUrl = "https://github.com/symonxdd/nsis/releases/latest/download/SampleAppInstaller-1.0.69.exe"
+          $downloadUrl = "https://github.com/symonxdd/nsis/releases/latest/download/SampleAppInstaller-50.0.0.exe"
 
           # Replace href attributes that contain "#link_to_be_inserted" or ".exe"
           $updated = $readme -replace "href='[^']*(#link_to_be_inserted|\.exe)[^']*'", "href='$downloadUrl'"
