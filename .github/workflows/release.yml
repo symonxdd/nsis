@@ -38,3 +38,11 @@ jobs:
 
           # Output to confirm the script worked
           Write-Host "README.md has been updated with the download link."
+
+      - name: Commit & push changes
+        uses: actions-js/push@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          author_name: "github-actions[bot]"
+          author_email: "github-actions[bot]@users.noreply.github.com"
+          message: "Update README.md with latest release URL"
