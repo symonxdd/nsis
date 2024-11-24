@@ -11,13 +11,16 @@ permissions:
 jobs:
   build:
     runs-on: windows-latest
-
     steps:
-      # Step 1: Checkout code
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      # Extract version from tag
+      - name: Extract Version from Tag
+        id: get_version
+        shell: powershell
+        run: |
+          $version = "${{ github.ref }}" -replace "refs/tags/v", ""
+          echo "VERSION=$version" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8
 
-      # Step 2: Extract release notes from CHANGELOG.md
+      # Extract release notes from CHANGELOG.md
       - name: Extract Release Notes
         id: extract_notes
         shell: powershell
@@ -53,19 +56,60 @@ jobs:
               echo "EOF" | Out-File -Append -FilePath $Env:GITHUB_ENV
           }
 
-      # Step 3: Build Project
+      # Check out the code
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Set up .NET
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: "8.0.x"
+
+      # Install NSIS
+      - name: Install NSIS
+        shell: powershell
+        run: choco install nsis -y
+
+      # Step 4: Update version in .csproj
+      - name: Update AssemblyVersion and FileVersion in .csproj
+        shell: powershell
+        run: |
+          $csprojPath = "SampleApp.csproj"
+          $newVersion = $Env:VERSION  # The version extracted from GitHub tag
+
+          # Update AssemblyVersion and FileVersion in .csproj
+          Write-Output "Updating AssemblyVersion and FileVersion to $newVersion"
+
+          # Update AssemblyVersion (set it as <version>.0 for compatibility reasons)
+          (Get-Content $csprojPath) -replace '<AssemblyVersion>.*</AssemblyVersion>', "<AssemblyVersion>$newVersion.0</AssemblyVersion>" |
+            Set-Content $csprojPath
+
+          # Update FileVersion
+          (Get-Content $csprojPath) -replace '<FileVersion>.*</FileVersion>', "<FileVersion>$newVersion.0</FileVersion>" |
+            Set-Content $csprojPath
+
+      # Publish the project
       - name: Build Project
         run: dotnet publish -c Release -r win-x64 --self-contained false /p:PublishSingleFile=true
         env:
           VERSION: ${{ env.VERSION }}
 
-      # Step 4: Create GitHub Release and upload installer
+      # Generate NSIS installer
+      - name: Generate Installer
+        run: makensis installer_script.nsi
+
+      # (Debug) List files in the directory
+      - name: Debug List Files
+        run: dir
+
+      # Create a GitHub Release and upload the installer
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: SampleAppInstaller.exe # Replace with the actual installer file you want to upload
+          files: SampleAppInstaller.exe
           name: "Release v${{ env.VERSION }}"
           tag_name: "v${{ env.VERSION }}"
-          body: ${{ env.RELEASE_NOTES }} # Use the release notes extracted above
+          body: ${{ env.RELEASE_NOTES }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
