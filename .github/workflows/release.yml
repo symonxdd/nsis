@@ -1,24 +1,21 @@
-name: Extract Release Notes Test
+name: Build and Release Installer
 
 on:
   push:
     tags:
       - "v*" # Trigger workflow on tags, e.g., v1.0.0
 
+permissions:
+  contents: write # Ensure GITHUB_TOKEN has write permissions
+
 jobs:
-  extract-release-notes:
+  build:
     runs-on: windows-latest
 
     steps:
       # Step 1: Checkout code
       - name: Checkout Code
         uses: actions/checkout@v4
-
-      # Debug: List files to ensure CHANGELOG.md is present
-      - name: Debug List Files
-        run: |
-          dir
-          ls -l CHANGELOG.md
 
       # Step 2: Extract release notes from CHANGELOG.md
       - name: Extract Release Notes
@@ -38,7 +35,6 @@ jobs:
 
           # Read the content of CHANGELOG.md
           $content = Get-Content $changelogPath -Raw
-          Write-Output "Changelog file content: $content" # Debug output
 
           # Regex pattern to extract notes for the current version
           $pattern = "(?s)(## \[$version\].*?)(?=## \[|\Z)"
@@ -57,13 +53,20 @@ jobs:
               echo "EOF" | Out-File -Append -FilePath $Env:GITHUB_ENV
           }
 
-      # Step 3: Show extracted release notes (debug step)
-      - name: Show Extracted Release Notes
+      # Step 3: Build Project (Optional: Add your build process here)
+      # For example, you can build your .NET application here or skip it if not needed.
+      - name: Build Project
         run: |
-          echo "Release Notes:"
-          echo "${{ env.RELEASE_NOTES }}"
+          echo "Building project..."  # Replace this with your actual build command if needed.
+          # dotnet build -c Release  # Example build command
 
-      # Debug: Check the contents of the environment variable
-      - name: Debug Environment Variables
-        run: |
-          echo "Release Notes from Env Var: ${{ env.RELEASE_NOTES }}"
+      # Step 4: Create GitHub Release and upload installer
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: SampleAppInstaller.exe # Replace with the actual installer file you want to upload
+          name: "Release v${{ env.VERSION }}"
+          tag_name: "v${{ env.VERSION }}"
+          body: ${{ env.RELEASE_NOTES }} # Use the release notes extracted above
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
