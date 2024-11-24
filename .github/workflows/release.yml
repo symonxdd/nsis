@@ -35,14 +35,45 @@ jobs:
         shell: powershell
         run: choco install nsis -y
 
-      # Step 4: Update version in .csproj
+      # Step 4: Extract release notes from CHANGELOG.md
+      - name: Extract Release Notes
+        id: get_notes
+        shell: powershell
+        run: |
+          $version = $Env:VERSION
+          $changelogPath = "CHANGELOG.md"
+          $notes = Get-Content $changelogPath | ForEach-Object {
+              if ($_ -match "^## \[$version\]") {
+                  $capture = $true
+                  continue
+              }
+              if ($capture -and ($_ -match "^## \[")) {
+                  $capture = $false
+              }
+              if ($capture) { $_ }
+          } | Out-String
+
+          if (-not $notes) {
+              Write-Output "No release notes found for version $version. Using an empty body."
+              $notes = ""
+          }
+
+          $notes = $notes.Trim()
+          echo "RELEASE_NOTES=$notes" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8
+
+      # Debug: Print extracted release notes
+      - name: Debug Release Notes
+        run: |
+          echo "Release Notes for v${{ env.VERSION }}:"
+          echo "${{ env.RELEASE_NOTES }}"
+
+      # Step 5: Update AssemblyVersion and FileVersion in .csproj
       - name: Update AssemblyVersion and FileVersion in .csproj
         shell: powershell
         run: |
           $csprojPath = "SampleApp.csproj"
           $newVersion = $Env:VERSION  # The version extracted from GitHub tag
 
-          # Update AssemblyVersion and FileVersion in .csproj
           Write-Output "Updating AssemblyVersion and FileVersion to $newVersion"
 
           # Update AssemblyVersion (set it as <version>.0 for compatibility reasons)
@@ -53,13 +84,13 @@ jobs:
           (Get-Content $csprojPath) -replace '<FileVersion>.*</FileVersion>', "<FileVersion>$newVersion.0</FileVersion>" |
             Set-Content $csprojPath
 
-      # Step 5: Publish the project
+      # Step 6: Publish the project
       - name: Build Project
         run: dotnet publish -c Release -r win-x64 --self-contained false /p:PublishSingleFile=true
         env:
           VERSION: ${{ env.VERSION }}
 
-      # Step 6: Generate NSIS installer
+      # Step 7: Generate NSIS installer
       - name: Generate Installer
         run: makensis installer_script.nsi
 
@@ -67,13 +98,13 @@ jobs:
       - name: Debug List Files
         run: dir
 
-      # Step 7: Create a GitHub Release and upload the installer
+      # Step 8: Create a GitHub Release and upload the installer
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: SampleAppInstaller.exe
           name: "Release v${{ env.VERSION }}"
           tag_name: "v${{ env.VERSION }}"
-          body: "${{ github.event.head_commit.message }}" # Use the tag's commit message for release notes
+          body: "${{ env.RELEASE_NOTES }}" # Use extracted release notes for the body
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
