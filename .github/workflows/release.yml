@@ -12,7 +12,7 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-      # Step 0: Extract the version from the tag
+      # Step 0: Extract Version from the tag
       - name: Extract Version from Tag
         id: get_version
         shell: powershell
@@ -35,15 +35,40 @@ jobs:
         shell: powershell
         run: choco install nsis -y
 
-      - name: Debug Read CHANGELOG.md
+      # Step 4: Update version in .csproj
+      - name: Update AssemblyVersion and FileVersion in .csproj
         shell: powershell
         run: |
-          $changelogPath = "CHANGELOG.md"
-          $content = Get-Content $changelogPath -Raw
-          Write-Output "CHANGELOG Content: `n$content"
+          $csprojPath = "SampleApp.csproj"
+          $newVersion = $Env:VERSION  # The version extracted from GitHub tag
 
-      # Step 4: Extract release notes from CHANGELOG.md
-      - name: Extract Release Notes
+          # Update AssemblyVersion and FileVersion in .csproj
+          Write-Output "Updating AssemblyVersion and FileVersion to $newVersion"
+
+          # Update AssemblyVersion (set it as <version>.0 for compatibility reasons)
+          (Get-Content $csprojPath) -replace '<AssemblyVersion>.*</AssemblyVersion>', "<AssemblyVersion>$newVersion.0</AssemblyVersion>" |
+            Set-Content $csprojPath
+
+          # Update FileVersion
+          (Get-Content $csprojPath) -replace '<FileVersion>.*</FileVersion>', "<FileVersion>$newVersion.0</FileVersion>" |
+            Set-Content $csprojPath
+
+      # Step 5: Publish the project
+      - name: Build Project
+        run: dotnet publish -c Release -r win-x64 --self-contained false /p:PublishSingleFile=true
+        env:
+          VERSION: ${{ env.VERSION }}
+
+      # Step 6: Generate NSIS installer
+      - name: Generate Installer
+        run: makensis installer_script.nsi
+
+      # Debug: List files in the directory
+      - name: Debug List Files
+        run: dir
+
+      # Step 7: Extract release notes and base64 encode them
+      - name: Extract and Encode Release Notes
         id: extract_notes
         shell: powershell
         run: |
@@ -69,43 +94,6 @@ jobs:
               echo "RELEASE_NOTES=$encodedNotes" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8
           }
 
-      # Debug: Print extracted release notes
-      - name: Debug Release Notes
-        run: |
-          echo "Release Notes for v${{ env.VERSION }}:"
-          echo "${{ env.RELEASE_NOTES }}"
-
-      # Step 5: Update AssemblyVersion and FileVersion in .csproj
-      - name: Update AssemblyVersion and FileVersion in .csproj
-        shell: powershell
-        run: |
-          $csprojPath = "SampleApp.csproj"
-          $newVersion = $Env:VERSION  # The version extracted from GitHub tag
-
-          Write-Output "Updating AssemblyVersion and FileVersion to $newVersion"
-
-          # Update AssemblyVersion (set it as <version>.0 for compatibility reasons)
-          (Get-Content $csprojPath) -replace '<AssemblyVersion>.*</AssemblyVersion>', "<AssemblyVersion>$newVersion.0</AssemblyVersion>" |
-            Set-Content $csprojPath
-
-          # Update FileVersion
-          (Get-Content $csprojPath) -replace '<FileVersion>.*</FileVersion>', "<FileVersion>$newVersion.0</FileVersion>" |
-            Set-Content $csprojPath
-
-      # Step 6: Publish the project
-      - name: Build Project
-        run: dotnet publish -c Release -r win-x64 --self-contained false /p:PublishSingleFile=true
-        env:
-          VERSION: ${{ env.VERSION }}
-
-      # Step 7: Generate NSIS installer
-      - name: Generate Installer
-        run: makensis installer_script.nsi
-
-      # Debug: List files in the directory
-      - name: Debug List Files
-        run: dir
-
       # Step 8: Create a GitHub Release and upload the installer
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -113,6 +101,6 @@ jobs:
           files: SampleAppInstaller.exe
           name: "Release v${{ env.VERSION }}"
           tag_name: "v${{ env.VERSION }}"
-          body: ${{ steps.extract_notes.outputs.RELEASE_NOTES | decode_base64 }}
+          body: ${{ steps.extract_notes.outputs.RELEASE_NOTES }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
