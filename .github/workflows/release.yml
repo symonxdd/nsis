@@ -11,8 +11,9 @@ permissions:
 jobs:
   build:
     runs-on: windows-latest
+
     steps:
-      # Step 0: Extract Version from the tag
+      # Step 0: Extract version from the tag
       - name: Extract Version from Tag
         id: get_version
         shell: powershell
@@ -67,8 +68,8 @@ jobs:
       - name: Debug List Files
         run: dir
 
-      # Step 7: Extract release notes and base64 encode them
-      - name: Extract and Encode Release Notes
+      # Step 7: Extract release notes from CHANGELOG.md
+      - name: Extract Release Notes
         id: extract_notes
         shell: powershell
         run: |
@@ -80,8 +81,10 @@ jobs:
               exit 1
           }
 
+          # Extract notes from the changelog for the current version
+          Write-Output "Looking for release notes for version: $version"
           $content = Get-Content $changelogPath -Raw
-          $pattern = "(?s)(## \[$version\].*?)(\n## \[|\Z)"
+          $pattern = "(?s)(## \[$version\].*?)(?=## \[|\Z)"
           $matches = [regex]::Matches($content, $pattern)
 
           if ($matches.Count -eq 0) {
@@ -89,18 +92,16 @@ jobs:
               echo "RELEASE_NOTES=" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8
           } else {
               $releaseNotes = $matches[0].Groups[1].Value.Trim()
-              # Base64 encode the release notes
-              $encodedNotes = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($releaseNotes))
-              echo "RELEASE_NOTES=$encodedNotes" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8
+              echo "RELEASE_NOTES=$releaseNotes" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8
           }
 
-      # Step 8: Create a GitHub Release and upload the installer
+      # Step 8: Create GitHub release and upload installer
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: SampleAppInstaller.exe
           name: "Release v${{ env.VERSION }}"
           tag_name: "v${{ env.VERSION }}"
-          body: ${{ steps.extract_notes.outputs.RELEASE_NOTES }}
+          body: ${{ env.RELEASE_NOTES }} # Use the release notes extracted above
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
