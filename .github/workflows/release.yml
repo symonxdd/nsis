@@ -50,7 +50,11 @@ jobs:
           } else {
               $releaseNotes = $matches[0].Groups[1].Value.Trim()
               Write-Output "Extracted Release Notes: $releaseNotes" # Debug output
-              echo "RELEASE_NOTES=$releaseNotes" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8
+              
+              # Use a delimiter to set a multi-line environment variable
+              echo "RELEASE_NOTES<<EOF" | Out-File -Append -FilePath $Env:GITHUB_ENV
+              echo "$releaseNotes" | Out-File -Append -FilePath $Env:GITHUB_ENV
+              echo "EOF" | Out-File -Append -FilePath $Env:GITHUB_ENV
           }
 
       # Step 3: Show extracted release notes (debug step)
