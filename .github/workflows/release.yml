@@ -12,6 +12,10 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
+      # Check out the code
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
       # Extract version from tag
       - name: Extract Version from Tag
         id: get_version
@@ -55,10 +59,6 @@ jobs:
               echo "$releaseNotes" | Out-File -Append -FilePath $Env:GITHUB_ENV
               echo "EOF" | Out-File -Append -FilePath $Env:GITHUB_ENV
           }
-
-      # Check out the code
-      - name: Checkout Code
-        uses: actions/checkout@v4
 
       # Set up .NET
       - name: Setup .NET
