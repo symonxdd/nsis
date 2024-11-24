@@ -16,4 +16,6 @@ jobs:
         shell: powershell
         run: |
           $actor = "${{ github.actor }}"
+          $repo = "${{ github.repository }}"
           Write-Host "GitHub username (actor): $actor"
+          Write-Host "GitHub repository: $repo"
